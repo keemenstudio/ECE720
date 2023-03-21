@@ -1,0 +1,4 @@
+model_type: deepspeech
+model: data/deepspeech/
+model_save_dir: data/pretrained_models/
+audio_path: speechbrain/asr-crdnn-rnnlm-librispeech/example.wav
