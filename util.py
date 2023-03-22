@@ -14,6 +14,11 @@ def load_config(path=None):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='configs/config.yaml')
+    parser.add_argument('--config', type=str, default='configs/deepspeech_config.yaml')
+
+    ## for audio split
+    parser.add_argument('--split_path', type=str, default='test/raw/')
+    parser.add_argument('--split_filename', type=str, default='')
+    parser.add_argument('--split_index', type=int, default= 0)
     args = parser.parse_args()
     return args

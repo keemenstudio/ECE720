@@ -1,4 +1,5 @@
+model_type: speechbrain
 model: speechbrain/asr-crdnn-rnnlm-librispeech
 model_save_dir: data/pretrained_models/
 # audio_path: speechbrain/asr-crdnn-rnnlm-librispeech/example.wav
-audio_path: test/predictor1234.wav
+audio_path: test/SI472.WAV.wav
