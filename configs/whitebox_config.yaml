@@ -1,0 +1,8 @@
+model_type: deepspeech
+model: data/deepspeech/
+model_save_dir: data/pretrained_models/
+# model_path: data/pretrained_models/deepspeech/deepspeech-0.9.3-models.pbmm
+# model_score_path: data/pretrained_models/deepspeech/deepspeech-0.9.3-models.scorer
+model_path: data/pretrained_models/deepspeech/librispeech_pretrained_v3.ckpt
+audio_path: test/raw/SI472.WAV.wav
+split_index: 1
