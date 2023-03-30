@@ -14,7 +14,7 @@ def load_config(path=None):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='configs/deepspeech_config.yaml')
+    parser.add_argument('--config', type=str, default='configs/speechbrain_config.yaml')
 
     ## for audio split
     parser.add_argument('--split_path', type=str, default='test/raw/')

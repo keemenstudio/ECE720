@@ -1,0 +1,3 @@
+[submodule "deepspeech.pytorch"]
+	path = deepspeech.pytorch
+	url = https://github.com/SeanNaren/deepspeech.pytorch.git
