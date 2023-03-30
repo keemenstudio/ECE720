@@ -14,10 +14,12 @@ import torch
 import sys, os
 sys.path.append("deepspeech.pytorch")
 from deepspeech_pytorch.utils import load_decoder, load_model
+from deepspeech_pytorch.configs.inference_config import TranscribeConfig
 from whitebox.stft import STFT, magphase
 from whitebox.attack import torch_spectrogram
 import torchaudio
 import torch.nn.functional as F
+from whitebox.attack import Attacker
 
 def predict(model, torch_stft, sound, device):
     data = sound.to(device)
@@ -47,19 +49,20 @@ def similarity(config):
     newfile_name = audio_name + '_new.wav'
 
     ## read the original audio
-    fs ,originalAudio = wav.read(raw_path + audio_name)
     word_file = pd.read_csv(raw_path + wordfile_name, sep=" ", header=None)
     verb_range = range(word_file[0][config['split_index']],word_file[1][config['split_index']])
-    word_list = list(word_file[2].to_numpy())
+    verb = word_file[2][config['split_index']]
+    gt = ' '.join(list(word_file[2].to_numpy()))
+    print(gt)
 
     ## read the split audio
     # splitAudio = originalAudio[verb_range]
     # length = splitAudio.shape[0] / fs
     # time = np.linspace(0., length, splitAudio.shape[0])
-
+    fs, audio = wav.read(raw_path + audio_name)
     sound, sample_rate = torchaudio.load(raw_path + audio_name)
     split_audio = sound[:, verb_range]
-    length = split_audio.shape[1] / fs
+    length = split_audio.shape[1] / sample_rate
 
     template = predict(model, torch_stft, split_audio, device)
     template = template.flatten()
@@ -71,7 +74,7 @@ def similarity(config):
     ###	compare all the audio file with all the words in frequency domain
     ### size of the word audio mast consistent with origional split audio
     """
-    simi_min = 2147483647
+    simi_max = 0
     simi_filename = ''
     simi_index = 0
     simi_transform = 0
@@ -86,10 +89,10 @@ def similarity(config):
             # fs, audio = wav.read(raw_path + pure_name + '.WAV.wav')
             word = pd.read_csv(raw_path + pure_name + '.WRD', sep=" ", header=None)
 
-            audio, _ = torchaudio.load(raw_path + audio_name)
+            audio, _ = torchaudio.load(raw_path + pure_name + '.WAV.wav')
 
             for i in range(len(word)):
-                word_audio = audio[:, word[0][i]:word[1][i]]
+                word_audio = audio[:, word.values[i][0] : word.values[i][1]]
                 tmp_result = predict(model, torch_stft, word_audio, device)
                 tmp_result = tmp_result.flatten()
                 tmp_result_length = tmp_result.size(0)
@@ -109,16 +112,27 @@ def similarity(config):
                 
 
 
-                if diff < simi_min:
-                    simi_min = diff
+                if diff.item() > simi_max:
+                    simi_max = diff.item()
                     simi_filename = file
                     simi_index = i
+                    simi_word = word.values[i][2]
                     # simi_transform = new_transform
 
-    print(simi_min)
+    print(simi_max)
     print(simi_filename)
     print(simi_index)
+    print(simi_word)
 
+    target = gt.replace(verb, simi_word)
+    print(target)
+
+
+    cfg = TranscribeConfig
+    decoder = load_decoder(labels=model.labels, cfg=cfg.lm)
+    attacker = Attacker(model=model, sound=sound, target=target.upper(), decoder=decoder, device=device, save=config['output_file'])
+
+    attacker.attack(epsilon = config['epsilon'], alpha=float(config['alpha']), attack_type=config['mode'], PGD_round=config['PGD_iter'])
 
 def AttackScore(pred, gt):
     same = 0
