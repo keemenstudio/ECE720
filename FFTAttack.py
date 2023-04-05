@@ -25,6 +25,7 @@ def attack(config):
     fs, originalAudio = wav.read(raw_path + audio_name)
     word_file = pd.read_csv(raw_path + wordfile_name, sep=" ", header=None)
     verb_range = range(word_file[0][config['split_index']],word_file[1][config['split_index']])
+    #verb_range = range(0,len(originalAudio))
     word_list = list(word_file[2].to_numpy())
 
     ## read the split audio
@@ -37,11 +38,15 @@ def attack(config):
     if config['model_type'] == 'speechbrain':
         savedir = config['model_save_dir'] + config['model']
         asr_model = EncoderDecoderASR.from_hparams(source=config['model'], savedir=savedir) 
-        normalizer = AudioNormalizer(sample_rate=fs)
+        normalizer = AudioNormalizer(sample_rate=16000)
+    if config['model_type'] == 'deepspeech':
+        speech_model = Model(config['model_path'])
+        speech_model.enableExternalScorer(config['model_score_path'])
 
-    theta = 0.3
+    theta = 1
     epoch = 100
     epoch_counter = 0
+    stage = 0
 
     while(True or epoch_counter < epoch):
         epoch_counter += 1
@@ -57,18 +62,33 @@ def attack(config):
         new_audio = np.copy(originalAudio)
         new_audio[verb_range] = filtered
 
+        if config['model_type'] == 'speechbrain':
+            wavfile.write(split_path + "precessing.wav", 16000, new_audio.astype(np.int16))
+            pred = asr_model.transcribe_file(split_path + "precessing.wav")
+            AS = AttackScore(pred.lower().split(), word_list)
+        if config['model_type'] == 'deepspeech':
+            pred = speech_model.stt(new_audio)
+            AS = AttackScore(pred.lower().split(), word_list)
 
-        wavfile.write(split_path + "precessing.wav", fs, new_audio.astype(np.int16))
-        pred = asr_model.transcribe_file(split_path + "precessing.wav")
-        AS = AttackScore(pred.lower().split(), word_list)
-
-        if AS <= 0:
-            return
-        else:
-            print("epoch: " + str(epoch_counter) + " attack score: " + str(AS) + " theta: " + str(theta))
+        ## evaluation
+        print("epoch: " + str(epoch_counter) + " attack score: " + str(AS) + " theta: " + str(theta))
+        if stage == 0 and AS > 0:
+            theta -= 0.1
+            wavfile.write(split_path + newfile_name, 16000, new_audio.astype(np.int16))
+        elif stage == 0 and AS <= 0:
+            theta += 0.09
+            stage = 1
+        elif stage == 1 and AS > 0:
             theta -= 0.01
-
-        wavfile.write(split_path + newfile_name, fs, new_audio.astype(np.int16))
+            wavfile.write(split_path + newfile_name, 16000, new_audio.astype(np.int16))
+        elif stage == 1 and AS <= 0:
+            theta += 0.009
+            stage = 2
+        elif stage == 2 and AS > 0:
+            theta -= 0.001
+            wavfile.write(split_path + newfile_name, 16000, new_audio.astype(np.int16))
+        else:
+            return
 
 
 
