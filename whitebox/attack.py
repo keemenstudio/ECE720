@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import speechbrain as sb
 import torch.optim as optim
+from scipy.signal import gaussian
+from scipy.signal import convolve
+
 def target_sentence_to_label(sentence, labels="_'ABCDEFGHIJKLMNOPQRSTUVWXYZ "):
     out = []
     for word in sentence:
@@ -86,18 +89,32 @@ class Attacker:
         return perturbed_sound
     
     # PGD
-    def pgd_attack(self, sound, ori_sound, eps, alpha, data_grad) :
+    def pgd_attack(self, sound, ori_sound, eps, alpha, data_grad, attack_range) :
+        guassian_filter = gaussian(sound.shape[1], (attack_range[1] - attack_range[0]) // 2)
+        guassian_filter /= np.sum(guassian_filter)
+        guassian_filter *= 5000
+        guassian_filter = np.roll(guassian_filter, (attack_range[1] + attack_range[0]) // 2 - sound.shape[1] // 2)
+        guassian_filter_mean = np.mean(guassian_filter[attack_range[0] : attack_range[1]])
+        guassian_filter[attack_range[0] : attack_range[1]].fill(guassian_filter_mean)
         grad_sign = data_grad.sign()
+        # plt.plot(guassian_filter)
+        # plt.savefig("guassian_filter.png")
         # grad_sign[:, :3720] *= alpha * 0.1
         # grad_sign[:, 3720:8840] *= alpha
         # grad_sign[:, 8840:] *= alpha * 0.1
         adv_sound = sound - alpha * grad_sign
         # adv_sound = sound - alpha * data_grad.sign() # + -> - !!!
         eta = torch.clamp(adv_sound - ori_sound.data, min=-eps, max=eps)
+        # plt.plot(eta.detach().cpu().numpy()[0,:])
+        # plt.savefig("eta.png")
+        # filter_eta = convolve(eta.detach().cpu().numpy()[0,:], guassian_filter, mode="same")
+        filter_eta = eta.detach().cpu().numpy()[0,:] * guassian_filter
+        plt.plot(filter_eta)
+        plt.savefig("filter_eta.png")
         # eta[:, :3720] *= 0.1
         # eta[:, 3720:8840] *= alpha
         # eta[:, 8840:] *= 0.1
-        sound = ori_sound + eta
+        sound = ori_sound + torch.Tensor(filter_eta).to("cuda")
 
         return sound
     
@@ -139,7 +156,7 @@ class Attacker:
 
         return torch.clamp(sound + delta, 0, 1).detach()
     
-    def attack(self, epsilon, alpha, attack_type = "FGSM", PGD_round=40):
+    def attack(self, epsilon, alpha, attack_type = "FGSM", PGD_round=40, attack_range = []):
         print("Start attack")
         
         data, target = self.sound.to(self.device), self.target.to(self.device)
@@ -148,7 +165,7 @@ class Attacker:
         # initial prediction
         spec = torch_spectrogram(data, self.torch_stft)
         input_sizes = torch.IntTensor([spec.size(3)]).int()
-        out, output_sizes, hs = self.model(spec, input_sizes)
+        out, output_sizes = self.model(spec, input_sizes)
         decoded_output, decoded_offsets = self.decoder.decode(out, output_sizes)
         original_output = decoded_output[0][0]
         print(f"Original prediction: {decoded_output[0][0]}")
@@ -178,7 +195,13 @@ class Attacker:
                 
                 spec = torch_spectrogram(data, self.torch_stft)
                 input_sizes = torch.IntTensor([spec.size(3)]).int()
-                out, output_sizes, hs = self.model(spec, input_sizes)
+                out, output_sizes = self.model(spec, input_sizes)
+
+                decoded_output, decoded_offsets = self.decoder.decode(out, output_sizes)
+                # if len(self.target_string) > 0 and decoded_output[0][0] != self.target_string:
+                # if decoded_output[0][0] != original_output:
+                #     print(f"early stop! iteration {i}")
+                #     break
                 out = out.transpose(0, 1)  # TxNxH
                 out = out.log_softmax(2)
                 loss = self.criterion(out, self.target, output_sizes, self.target_lengths)
@@ -187,7 +210,7 @@ class Attacker:
                 loss.backward()
                 data_grad = data.grad.data
 
-                data = self.pgd_attack(data, data_raw, epsilon, alpha, data_grad).detach_()
+                data = self.pgd_attack(data, data_raw, epsilon, alpha, data_grad, attack_range).detach_()
             perturbed_data = data
         elif attack_type == "C&W":
             max_iters = 1000
@@ -199,7 +222,7 @@ class Attacker:
         # prediction of adversarial sound
         spec = torch_spectrogram(perturbed_data, self.torch_stft)
         input_sizes = torch.IntTensor([spec.size(3)]).int()
-        out, output_sizes, hs = self.model(spec, input_sizes)
+        out, output_sizes = self.model(spec, input_sizes)
         decoded_output, decoded_offsets = self.decoder.decode(out, output_sizes)
         final_output = decoded_output[0][0]
         
@@ -214,7 +237,7 @@ class Attacker:
         if self.save:
             torchaudio.save(self.save, src=perturbed_data.cpu(), sample_rate=self.sample_rate)
         self.perturbed_data = perturbed_data
-        return db_difference, l_distance, self.target_string, final_output
+        return db_difference, l_distance, self.target_string, final_output, original_output, perturbed_data, data_raw, perturbed_data - data_raw
     
 
 class SpeechBrainAttacker(Attacker):
