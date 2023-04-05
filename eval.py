@@ -6,6 +6,7 @@ from util import parse_args, load_config
 import pandas as pd
 import torchaudio
 from whitebox_similarity import pgd_attack
+import json
 
 def snr(audio, perturbation):
     signal_power = np.mean(np.square(audio))
@@ -70,8 +71,8 @@ def main(config):
                 result_dict['final_output'] = final_output
                 summary.append(result_dict)
                 print(result_dict)
-                return
-
+                # return
+    print(f"final output: {json.dumps(result_dict)}")
 
 if __name__ == '__main__':
     args = parse_args()
