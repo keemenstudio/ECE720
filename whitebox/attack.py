@@ -109,8 +109,8 @@ class Attacker:
         # plt.savefig("eta.png")
         # filter_eta = convolve(eta.detach().cpu().numpy()[0,:], guassian_filter, mode="same")
         filter_eta = eta.detach().cpu().numpy()[0,:] * guassian_filter
-        plt.plot(filter_eta)
-        plt.savefig("filter_eta.png")
+        # plt.plot(filter_eta)
+        # plt.savefig("filter_eta.png")
         # eta[:, :3720] *= 0.1
         # eta[:, 3720:8840] *= alpha
         # eta[:, 8840:] *= 0.1
