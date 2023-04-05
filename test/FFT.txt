@@ -1,0 +1,5 @@
+epoch: 29 SA1.WAV.wav_fft.wav theta: 0.0822 AS: 1.0 SNR: 8.65308761639323 PC: 0.03402
+epoch: 29 SA2.WAV.wav_fft.wav theta: 0.0534 AS: 0.5 SNR: 7.3445473003814845 PC: 0.05506
+epoch: 28 SI634.WAV.wav_fft.wav theta: 0.0625 AS: 1.0 SNR: 9.930813943313408 PC: 0.03258
+epoch: 30 SI639.WAV.wav_fft.wav theta: 0.1811 AS: 0.5 SNR: 5.577655180994698 PC: 0.13232
+epoch: 28 SI734.WAV.wav_fft.wav theta: 0.0139 AS: 0.333 SNR: 19.26542661138261 PC: 0.00925
