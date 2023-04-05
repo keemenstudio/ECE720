@@ -1,0 +1,12 @@
+model_type: deepspeech
+model: data/deepspeech/
+model_save_dir: data/pretrained_models/
+model_path: data/pretrained_models/deepspeech/librispeech_pretrained_v3.ckpt
+audio_files_path: data/dataset_timit/data/TEST/DR3
+output_path: output/
+split_index: 1
+epsilon: 0.25
+alpha: 1e-3
+PGD_iter: 200
+mode: PGD
+dataset_path: data/dataset_timit/data/TEST/DR2

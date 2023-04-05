@@ -1,5 +1,5 @@
 model_type: speechbrain
 model: speechbrain/asr-crdnn-rnnlm-librispeech
 model_save_dir: data/pretrained_models/
-audio_path: test/FFT_attack.wav
-split_index: 2
+audio_path: adv.wav
+split_index: 1
