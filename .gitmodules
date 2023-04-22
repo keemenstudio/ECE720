@@ -1,3 +1,6 @@
 [submodule "deepspeech.pytorch"]
 	path = deepspeech.pytorch
 	url = https://github.com/SeanNaren/deepspeech.pytorch.git
+[submodule "adversarial-robustness-toolbox"]
+	path = adversarial-robustness-toolbox
+	url = https://github.com/Trusted-AI/adversarial-robustness-toolbox.git

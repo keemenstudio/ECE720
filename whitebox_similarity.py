@@ -313,7 +313,7 @@ def similarity(config):
     decoder = load_decoder(labels=model.labels, cfg=cfg.lm)
     attacker = Attacker(model=model, sound=sound, target="HE PLAYFASCOM AL THERE WHILE WORKI'G TOWARD A LAW DEGREE", decoder=decoder, device=device, save=config['output_file'])
 
-    attacker.attack(epsilon = config['epsilon'], alpha=float(config['alpha']), attack_type=config['mode'], PGD_round=config['PGD_iter'])
+    attacker.attack(epsilon = config['epsilon'], alpha=float(config['alpha']), attack_type=config['mode'], PGD_round=config['PGD_iter'], attack_range = verb_range)
 
 def AttackScore(pred, gt):
     same = 0

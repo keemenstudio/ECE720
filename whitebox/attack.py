@@ -156,6 +156,33 @@ class Attacker:
 
         return torch.clamp(sound + delta, 0, 1).detach()
     
+    def wer3(self, r, h):
+        '''
+        This function is to calculate the edit distance of reference sentence and the hypothesis sentence.
+        Main algorithm used is dynamic programming.
+        Attributes: 
+            r -> the list of words produced by splitting reference sentence.
+            h -> the list of words produced by splitting hypothesis sentence.
+        '''
+        d = np.zeros((len(r)+1)*(len(h)+1), dtype=np.uint8).reshape((len(r)+1, len(h)+1))
+        for i in range(len(r)+1):
+            d[i][0] = i
+        for j in range(len(h)+1):
+            d[0][j] = j
+        for i in range(1, len(r)+1):
+            for j in range(1, len(h)+1):
+                if r[i-1] == h[j-1]:
+                    d[i][j] = d[i-1][j-1]
+                else:
+                    substitute = d[i-1][j-1] + 1
+                    insert = d[i][j-1] + 1
+                    delete = d[i-1][j] + 1
+                    d[i][j] = min(substitute, insert, delete)
+        if d[len(r)][len(h)] == 0:
+            return 0
+        else:
+            return 1 / d[len(r)][len(h)]
+
     def attack(self, epsilon, alpha, attack_type = "FGSM", PGD_round=40, attack_range = []):
         print("Start attack")
         
@@ -169,6 +196,7 @@ class Attacker:
         decoded_output, decoded_offsets = self.decoder.decode(out, output_sizes)
         original_output = decoded_output[0][0]
         print(f"Original prediction: {decoded_output[0][0]}")
+        print(f"attack range {attack_range}")
         
         # ATTACK
         ############ ATTACK GENERATION ##############
@@ -199,9 +227,10 @@ class Attacker:
 
                 decoded_output, decoded_offsets = self.decoder.decode(out, output_sizes)
                 # if len(self.target_string) > 0 and decoded_output[0][0] != self.target_string:
-                # if decoded_output[0][0] != original_output:
-                #     print(f"early stop! iteration {i}")
-                #     break
+                AS = self.wer3(decoded_output[0][0], original_output)
+                if AS == 1:
+                    print(f"early stop! iteration {i}")
+                    break
                 out = out.transpose(0, 1)  # TxNxH
                 out = out.log_softmax(2)
                 loss = self.criterion(out, self.target, output_sizes, self.target_lengths)

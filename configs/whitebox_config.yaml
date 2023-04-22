@@ -11,4 +11,4 @@ epsilon: 0.25
 alpha: 1e-3
 PGD_iter: 200
 mode: PGD
-dataset_path: data/dataset_timit/data/TEST/DR1
+dataset_path: data/dataset_timit/data/TEST/DR2

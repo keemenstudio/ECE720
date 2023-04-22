@@ -5,7 +5,7 @@ import os
 from util import parse_args, load_config
 import pandas as pd
 import torchaudio
-from whitebox_similarity import pgd_attack
+from whitebox_imperceptible import imperceptible_attack
 import json
 
 def snr(audio, perturbation):
@@ -101,12 +101,12 @@ def main(config):
         for file in files:
             if file[-4:] == ".wav":
                 abs_filepath = os.path.join(root, file)
-                output_file = config['output_path'] + file + 'pgd.out.wav'
+                output_file = config['output_path'] + file + '.imperceptible.out.wav'
                 print(f"current processing: {abs_filepath}")
-                db_difference, l_distance, target_string, final_output, original_output, perturbed_data, data_raw, perterbation = pgd_attack(abs_filepath, output_file, config['model_path'], config['split_index'], config['dataset_path'], config['epsilon'], config['alpha'], config['mode'], config['PGD_iter'])
-                perturbed_data = perturbed_data.detach().cpu().numpy()
-                data_raw = data_raw.detach().cpu().numpy()
-                perterbation = perterbation.detach().cpu().numpy()
+                db_difference, l_distance, target_string, final_output, original_output, perturbed_data, data_raw, perterbation = imperceptible_attack(abs_filepath, output_file, config['model_path'], config['split_index'], config['dataset_path'], config['epsilon'], config['alpha'], config['mode'], config['PGD_iter'])
+                perturbed_data = perturbed_data
+                data_raw = data_raw
+                perterbation = perterbation
                 result_snr = snr(perturbed_data, perterbation)
                 print(f"snr {result_snr}")
                 result_as = wer(original_output.split(" "), final_output.split(" "))
@@ -128,13 +128,13 @@ def main(config):
                 result_dict['target_output'] = target_string
                 result_dict['final_output'] = final_output
                 summary.append(result_dict)
-                cnt += 1
                 print(result_dict)
+                cnt += 1
                 if cnt > 20:
                     print(f"final output: {json.dumps(summary)}")
                     return
                 # return
-    
+    print(f"final output: {json.dumps(summary)}")
 
 if __name__ == '__main__':
     args = parse_args()
