@@ -113,7 +113,7 @@ def attack(split_path, originalAudio, verb_range, word_list, transform, simi_tra
 
         word_audio = ifft(transform)
         simi_audio = ifft(simi_transform)
-        new_audio = originalAudio
+        new_audio = np.copy(originalAudio)
         
         ##########
         # attack
@@ -147,7 +147,7 @@ def attack(split_path, originalAudio, verb_range, word_list, transform, simi_tra
             " theta: " + str(theta) +
             " AS: " + str(np.round(AS, decimals=3)) + 
             " SNR: " + str(compute_snr(originalAudio, new_audio)) +
-            " PC: " + str(compute_percentage(originalAudio, new_audio)))
+            " CORR: " + str(compute_corr(originalAudio, new_audio)))
         if stage == 0 and AS > 0:
             theta -= 0.1
             wavfile.write(split_path + newfile_name, 16000, new_audio.astype(np.int16))
@@ -175,9 +175,9 @@ def attack(split_path, originalAudio, verb_range, word_list, transform, simi_tra
 
         
 
-def compute_percentage(originalAudio, new_audio):
-    percentage = sum(abs(originalAudio - new_audio)) / sum(abs(originalAudio))
-    return np.round(percentage, decimals=5)
+def compute_corr(originalAudio, new_audio):
+    corr = np.correlate(originalAudio/np.linalg.norm(originalAudio), new_audio/np.linalg.norm(new_audio))
+    return corr
 
 def compute_snr(originalAudio, new_audio):
     signal_power = np.mean(np.square(new_audio))

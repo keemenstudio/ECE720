@@ -6,6 +6,7 @@ from deepspeech import Model
 import scipy.io.wavfile as wav
 from scipy.fft import fft, fftfreq, ifft
 from scipy.io import wavfile
+from scipy import signal
 import pandas as pd
 import numpy as np
 import torch
@@ -79,7 +80,7 @@ def attack(config):
             " theta: " + str(theta) +
             " AS: " + str(np.round(AS, decimals=3)) + 
             " SNR: " + str(compute_snr(originalAudio, new_audio)) +
-            " PC: " + str(compute_percentage(originalAudio, new_audio)))
+            " CORR: " + str(compute_corr(originalAudio, new_audio)))
         if stage == 0 and AS > 0:
             theta -= 0.1
             wavfile.write(split_path + newfile_name, 16000, new_audio.astype(np.int16))
@@ -104,9 +105,9 @@ def attack(config):
         else:
             return
 
-def compute_percentage(originalAudio, new_audio):
-    percentage = sum(abs(originalAudio - new_audio)) / sum(abs(originalAudio))
-    return np.round(percentage, decimals=5)
+def compute_corr(originalAudio, new_audio):
+    corr = np.correlate(originalAudio/np.linalg.norm(originalAudio), new_audio/np.linalg.norm(new_audio))
+    return corr
 
 def compute_snr(originalAudio, new_audio):
     signal_power = np.mean(np.square(new_audio))
